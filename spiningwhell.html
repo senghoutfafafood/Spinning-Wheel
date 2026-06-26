@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spinning Wheel Prize</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Kantumruy Pro", "Khmer OS Battambang", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, #ffe6a7, transparent 35%),
+        radial-gradient(circle at bottom right, #ff9a9e, transparent 35%),
+        linear-gradient(135deg, #7b2ff7, #f107a3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #fff;
+    }
+
+    .game-wrapper {
+      width: 100%;
+      max-width: 1050px;
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .wheel-card,
+    .info-card {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(18px);
+      border-radius: 28px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+    }
+
+    .wheel-card {
+      padding: 28px;
+      text-align: center;
+      position: relative;
+    }
+
+    .title {
+      font-size: clamp(28px, 4vw, 46px);
+      font-weight: 900;
+      margin-bottom: 8px;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .subtitle {
+      opacity: 0.9;
+      margin-bottom: 24px;
+      font-size: 16px;
+    }
+
+    .wheel-area {
+      position: relative;
+      width: min(88vw, 520px);
+      height: min(88vw, 520px);
+      margin: 0 auto;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      filter: drop-shadow(0 22px 35px rgba(0, 0, 0, 0.32));
+    }
+
+    .pointer {
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 22px solid transparent;
+      border-right: 22px solid transparent;
+      border-top: 46px solid #ffffff;
+      z-index: 5;
+      filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.3));
+    }
+
+    .center-button {
+      position: absolute;
+      inset: 50%;
+      transform: translate(-50%, -50%);
+      width: 124px;
+      height: 124px;
+      border-radius: 50%;
+      border: 8px solid #fff;
+      background: linear-gradient(135deg, #ffcc00, #ff5c00);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow:
+        0 15px 28px rgba(0, 0, 0, 0.35),
+        inset 0 4px 10px rgba(255, 255, 255, 0.4);
+      transition: 0.2s ease;
+      z-index: 4;
+    }
+
+    .center-button:hover {
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    .center-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.75;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .info-card {
+      padding: 30px;
+    }
+
+    .info-card h2 {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .prize-list {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .prize-item {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 13px 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 700;
+    }
+
+    .number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #fff;
+      color: #d4145a;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .result-box {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 18px;
+      background: #fff;
+      color: #1e1e1e;
+      text-align: center;
+    }
+
+    .result-label {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 6px;
+    }
+
+    .result-text {
+      font-size: 22px;
+      font-weight: 900;
+      color: #d4145a;
+    }
+
+    .reset-btn {
+      width: 100%;
+      margin-top: 16px;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.22);
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .reset-btn:hover {
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    .popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .popup.show {
+      display: flex;
+    }
+
+    .popup-card {
+      width: min(92vw, 430px);
+      background: #fff;
+      color: #171717;
+      border-radius: 28px;
+      padding: 32px;
+      text-align: center;
+      animation: pop 0.35s ease;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+    }
+
+    @keyframes pop {
+      from {
+        transform: scale(0.85);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .popup-card .emoji {
+      font-size: 58px;
+      margin-bottom: 12px;
+    }
+
+    .popup-card h3 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #d4145a;
+    }
+
+    .popup-card p {
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.5;
+      margin-bottom: 22px;
+    }
+
+    .close-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 13px 26px;
+      background: linear-gradient(135deg, #7b2ff7, #f107a3);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .confetti {
+      position: fixed;
+      width: 9px;
+      height: 14px;
+      top: -20px;
+      animation: fall 1.8s linear forwards;
+      z-index: 30;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    @media (max-width: 850px) {
+      .game-wrapper {
+        grid-template-columns: 1fr;
+      }
+
+      .info-card {
+        order: -1;
+      }
+
+      .center-button {
+        width: 105px;
+        height: 105px;
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="game-wrapper">
+    <section class="wheel-card">
+      <h1 class="title">🎁 Spinning Wheel</h1>
+      <p class="subtitle">ចុចប៊ូតុង SPIN ដើម្បីចាប់រង្វាន់</p>
+
+      <div class="wheel-area">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas"></canvas>
+        <button class="center-button" id="spinBtn">SPIN</button>
+      </div>
+    </section>
+
+    <aside class="info-card">
+      <h2>Prize List</h2>
+
+      <div class="prize-list" id="prizeList"></div>
+
+      <div class="result-box">
+        <div class="result-label">Last Result</div>
+        <div class="result-text" id="lastResult">មិនទាន់បានបង្វិល</div>
+      </div>
+
+      <button class="reset-btn" id="resetBtn">Reset Result</button>
+    </aside>
+  </main>
+
+  <div class="popup" id="popup">
+    <div class="popup-card">
+      <div class="emoji">🎉</div>
+      <h3>Congratulations!</h3>
+      <p id="popupPrize"></p>
+      <button class="close-btn" id="closePopup">OK</button>
+    </div>
+  </div>
+
+  <script>
+    const prizes = [
+      "នំកូនតោ ៤ រដូវ",
+      "ចាហួយពេជ្រធំ ហ្វាហ្វា Couple",
+      "POPZ ១ដប + នំកូនតោ ១",
+      "ទឹកក្រូច JOOCE ១ដប + នំកូនតោ ១",
+      "POPZ ១យួរ",
+      "Spin Again!",
+      "Try Again!"
+    ];
+
+    const colors = [
+      "#ff595e",
+      "#ffca3a",
+      "#8ac926",
+      "#1982c4",
+      "#6a4c93",
+      "#ff7b00",
+      "#00bbf9"
+    ];
+
+    const canvas = document.getElementById("wheelCanvas");
+    const ctx = canvas.getContext("2d");
+    const spinBtn = document.getElementById("spinBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const lastResult = document.getElementById("lastResult");
+    const prizeList = document.getElementById("prizeList");
+    const popup = document.getElementById("popup");
+    const popupPrize = document.getElementById("popupPrize");
+    const closePopup = document.getElementById("closePopup");
+
+    let currentRotation = 0;
+    let isSpinning = false;
+
+    function setupCanvas() {
+      const size = canvas.parentElement.clientWidth;
+      const dpr = window.devicePixelRatio || 1;
+
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      canvas.style.width = size + "px";
+      canvas.style.height = size + "px";
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawWheel();
+    }
+
+    function drawWheel() {
+      const size = canvas.clientWidth;
+      const center = size / 2;
+      const radius = center - 8;
+      const slice = (Math.PI * 2) / prizes.length;
+
+      ctx.clearRect(0, 0, size, size);
+
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate((currentRotation * Math.PI) / 180);
+
+      for (let i = 0; i < prizes.length; i++) {
+        const startAngle = -Math.PI / 2 + i * slice;
+        const endAngle = startAngle + slice;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(startAngle + slice / 2);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "700 16px 'Noto Sans Khmer', Arial, sans-serif";
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 4;
+
+        wrapText(ctx, prizes[i], radius * 0.58, 0, radius * 0.58, 21);
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(center, center, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = "#ffffff";
+      ctx.stroke();
+
+      // Inner circle
+      ctx.beginPath();
+      ctx.arc(center, center, 70, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+    }
+
+    function wrapText(context, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(" ");
+      let lines = [];
+      let line = "";
+
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + " ";
+        const metrics = context.measureText(testLine);
+
+        if (metrics.width > maxWidth && i > 0) {
+          lines.push(line);
+          line = words[i] + " ";
+        } else {
+          line = testLine;
+        }
+      }
+
+      lines.push(line);
+
+      const startY = y - ((lines.length - 1) * lineHeight) / 2;
+
+      lines.forEach((lineText, index) => {
+        context.fillText(lineText.trim(), x, startY + index * lineHeight);
+      });
+    }
+
+    function createPrizeList() {
+      prizeList.innerHTML = "";
+
+      prizes.forEach((prize, index) => {
+        const item = document.createElement("div");
+        item.className = "prize-item";
+        item.innerHTML = `
+          <span class="number">${index + 1}</span>
+          <span>${prize}</span>
+        `;
+        prizeList.appendChild(item);
+      });
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function spinWheel() {
+      if (isSpinning) return;
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+      spinBtn.textContent = "SPINNING";
+
+      const winnerIndex = Math.floor(Math.random() * prizes.length);
+      const sliceDegree = 360 / prizes.length;
+      const winnerCenterDegree = (winnerIndex + 0.5) * sliceDegree;
+
+      const extraSpins = 6 * 360;
+      const targetRotation = currentRotation + extraSpins + (360 - winnerCenterDegree);
+      const startRotation = currentRotation;
+      const changeRotation = targetRotation - startRotation;
+      const duration = 4500;
+      const startTime = performance.now();
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = easeOutCubic(progress);
+
+        currentRotation = startRotation + changeRotation * eased;
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          currentRotation = targetRotation % 360;
+          finishSpin(winnerIndex);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function finishSpin(winnerIndex) {
+      const prize = prizes[winnerIndex];
+
+      isSpinning = false;
+      spinBtn.disabled = false;
+      spinBtn.textContent = "SPIN";
+
+      lastResult.textContent = prize;
+      popupPrize.textContent = prize;
+      popup.classList.add("show");
+
+      if (prize !== "Spin Again!" && prize !== "Try Again!") {
+        makeConfetti();
+      }
+    }
+
+    function makeConfetti() {
+      const confettiColors = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#ffffff"];
+
+      for (let i = 0; i < 80; i++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti";
+        piece.style.left = Math.random() * 100 + "vw";
+        piece.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        piece.style.animationDelay = Math.random() * 0.5 + "s";
+        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+        document.body.appendChild(piece);
+
+        setTimeout(() => {
+          piece.remove();
+        }, 2300);
+      }
+    }
+
+    spinBtn.addEventListener("click", spinWheel);
+
+    closePopup.addEventListener("click", () => {
+      popup.classList.remove("show");
+    });
+
+    popup.addEventListener("click", (e) => {
+      if (e.target === popup) {
+        popup.classList.remove("show");
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      lastResult.textContent = "មិនទាន់បានបង្វិល";
+      currentRotation = 0;
+      drawWheel();
+    });
+
+    window.addEventListener("resize", setupCanvas);
+
+    createPrizeList();
+    setupCanvas();
+  </script>
+</body>
+</html>
